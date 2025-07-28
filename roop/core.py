@@ -89,8 +89,8 @@ def suggest_execution_providers() -> List[str]:
 
 def suggest_execution_threads() -> int:
     if 'CUDAExecutionProvider' in onnxruntime.get_available_providers():
-        # Tesla T4 tiene 8GB VRAM, usar 6 threads para optimizar
-        return 6
+        # Tesla T4 tiene 15GB VRAM, usar 8 threads para optimizar
+        return 8
     return 1
 
 
@@ -99,8 +99,8 @@ def limit_resources() -> None:
     gpus = tensorflow.config.experimental.list_physical_devices('GPU')
     for gpu in gpus:
         # Increase memory limit for CUDA if available
-        # Tesla T4 has 8GB VRAM, use 6GB to leave room for system
-        memory_limit = 6144 if 'CUDAExecutionProvider' in roop.globals.execution_providers else 1024
+        # Tesla T4 has 15GB VRAM, use 12GB to leave room for system
+        memory_limit = 12288 if 'CUDAExecutionProvider' in roop.globals.execution_providers else 1024
         tensorflow.config.experimental.set_virtual_device_configuration(gpu, [
             tensorflow.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)
         ])
