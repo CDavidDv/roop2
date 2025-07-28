@@ -2,6 +2,7 @@ import threading
 from typing import Any, Optional, List
 import insightface
 import numpy
+import onnxruntime
 
 import roop.globals
 from roop.typing import Frame, Face
@@ -15,7 +16,14 @@ def get_face_analyser() -> Any:
 
     with THREAD_LOCK:
         if FACE_ANALYSER is None:
-            FACE_ANALYSER = insightface.app.FaceAnalysis(name='buffalo_l', providers=roop.globals.execution_providers)
+            # Forzar uso de CUDA si está disponible
+            providers = roop.globals.execution_providers
+            if 'CUDAExecutionProvider' in onnxruntime.get_available_providers():
+                # Asegurar que CUDA esté primero en la lista
+                providers = ['CUDAExecutionProvider'] + [p for p in providers if p != 'CUDAExecutionProvider']
+                print(f"[FACE_ANALYSER] Usando providers: {providers}")
+            
+            FACE_ANALYSER = insightface.app.FaceAnalysis(name='buffalo_l', providers=providers)
             FACE_ANALYSER.prepare(ctx_id=0)
     return FACE_ANALYSER
 
