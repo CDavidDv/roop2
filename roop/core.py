@@ -45,7 +45,9 @@ def parse_args() -> None:
     program.add_argument('--output-video-encoder', help='encoder used for the output video', dest='output_video_encoder', default='libx264', choices=['libx264', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'hevc_nvenc'])
     program.add_argument('--output-video-quality', help='quality used for the output video', dest='output_video_quality', type=int, default=35, choices=range(101), metavar='[0-100]')
     program.add_argument('--max-memory', help='maximum amount of RAM in GB', dest='max_memory', type=int)
-    program.add_argument('--execution-provider', help='available execution provider (choices: cpu, ...)', dest='execution_provider', default=['cpu'], choices=suggest_execution_providers(), nargs='+')
+    # Set default to cuda if available, otherwise cpu
+    default_provider = ['cuda'] if 'CUDAExecutionProvider' in onnxruntime.get_available_providers() else ['cpu']
+    program.add_argument('--execution-provider', help='available execution provider (choices: cpu, ...)', dest='execution_provider', default=default_provider, choices=suggest_execution_providers(), nargs='+')
     program.add_argument('--execution-threads', help='number of execution threads', dest='execution_threads', type=int, default=suggest_execution_threads())
     program.add_argument('-v', '--version', action='version', version=f'{roop.metadata.name} {roop.metadata.version}')
 
@@ -87,7 +89,8 @@ def suggest_execution_providers() -> List[str]:
 
 def suggest_execution_threads() -> int:
     if 'CUDAExecutionProvider' in onnxruntime.get_available_providers():
-        return 8
+        # Tesla T4 tiene 8GB VRAM, usar 6 threads para optimizar
+        return 6
     return 1
 
 
@@ -95,8 +98,10 @@ def limit_resources() -> None:
     # prevent tensorflow memory leak
     gpus = tensorflow.config.experimental.list_physical_devices('GPU')
     for gpu in gpus:
+        # Increase memory limit for CUDA if available
+        memory_limit = 4096 if 'CUDAExecutionProvider' in roop.globals.execution_providers else 1024
         tensorflow.config.experimental.set_virtual_device_configuration(gpu, [
-            tensorflow.config.experimental.VirtualDeviceConfiguration(memory_limit=1024)
+            tensorflow.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)
         ])
     # limit memory usage
     if roop.globals.max_memory:
