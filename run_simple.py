@@ -16,6 +16,7 @@ def add_default_args():
         print("   - Execution Threads: 8")
         print("   - Temp Frame Quality: 100")
         print("   - Keep FPS: Sí")
+        print("   - Frame Processors: face_swapper + face_enhancer")
         print("   - NSFW Check: DESACTIVADO")
         print("=" * 50)
         
@@ -25,7 +26,8 @@ def add_default_args():
             "--max-memory", "12",
             "--execution-threads", "8",
             "--temp-frame-quality", "100",
-            "--keep-fps"
+            "--keep-fps",
+            "--frame-processor", "face_swapper", "face_enhancer"
         ]
         
         # Insertar después del nombre del script

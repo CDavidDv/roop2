@@ -15,9 +15,10 @@ class BatchProcessor:
         self.default_args = [
             "--execution-provider", "cuda",
             "--max-memory", "12",
-            "--execution-threads", "8",
+            "--execution-threads", "30",
             "--temp-frame-quality", "100",
-            "--keep-fps"
+            "--keep-fps",
+            "--frame-processor", "face_swapper", "face_enhancer"
         ]
     
     def find_source_image(self):

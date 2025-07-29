@@ -46,6 +46,7 @@ El sistema usa automáticamente estas configuraciones optimizadas:
 - **Execution Threads**: 8
 - **Temp Frame Quality**: 100
 - **Keep FPS**: Sí
+- **Frame Processors**: face_swapper + face_enhancer
 - **NSFW Check**: DESACTIVADO
 
 ## 📊 Características
@@ -56,6 +57,7 @@ El sistema usa automáticamente estas configuraciones optimizadas:
 - **Organizado**: Estructura de carpetas clara
 - **Robusto**: Manejo de errores y reportes
 - **Rápido**: Configuraciones optimizadas por defecto
+- **Calidad**: Face swapper + face enhancer para máxima calidad
 
 ### 📈 Rendimiento esperado:
 - **Tesla T4**: ~2-5 segundos por frame
