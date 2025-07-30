@@ -13,13 +13,13 @@ class BatchProcessor:
         self.source_dir = "source"
         self.input_dir = "videos_input"
         self.output_dir = "videos_output"
+        self.temp_dir = "temp_processing"
         self.default_args = [
             "--execution-provider", "cuda",
             "--max-memory", "12",
             "--execution-threads", "30",
             "--temp-frame-quality", "100",
-            "--keep-fps",
-            "--frame-processor", "face_swapper", "face_enhancer"
+            "--keep-fps"
         ]
     
     def find_source_image(self):
@@ -75,47 +75,101 @@ class BatchProcessor:
         output_path.mkdir(exist_ok=True)
         print(f"✅ Carpeta de salida: {self.output_dir}")
     
+    def ensure_temp_dir(self):
+        """Asegura que existe la carpeta temporal"""
+        temp_path = Path(self.temp_dir)
+        temp_path.mkdir(exist_ok=True)
+        print(f"✅ Carpeta temporal: {self.temp_dir}")
+    
     def process_video(self, source_image, input_video):
-        """Procesa un video individual"""
+        """Procesa un video individual con doble face enhancer"""
         # Crear nombre de archivo de salida combinando imagen y video
         output_path = generate_output_filename(source_image, input_video, self.output_dir)
+        temp_output = Path(self.temp_dir) / f"temp_{Path(input_video).stem}.mp4"
         
-        # Construir comando
-        cmd = [
+        # Paso 1: Primer face enhancer
+        print(f"\n🎬 Procesando: {Path(input_video).name}")
+        print(f"   Entrada: {input_video}")
+        print(f"   Paso 1: Primer face enhancer")
+        print("-" * 60)
+        
+        cmd_step1 = [
             sys.executable, "run.py",
             "-s", source_image,
             "-t", input_video,
-            "-o", str(output_path)
-        ] + self.default_args
-        
-        print(f"\n🎬 Procesando: {input_path.name}")
-        print(f"   Entrada: {input_video}")
-        print(f"   Salida: {output_path}")
-        print(f"   Comando: {' '.join(cmd)}")
-        print("-" * 60)
+            "-o", str(temp_output)
+        ] + self.default_args + ["--frame-processor", "face_enhancer"]
         
         start_time = time.time()
         
         try:
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            result = subprocess.run(cmd_step1, check=True, capture_output=True, text=True)
+            print(f"✅ Primer face enhancer completado")
+            
+            # Paso 2: Face swap
+            print(f"\n🔄 Paso 2: Face swap")
+            print("-" * 60)
+            
+            temp_input = temp_output
+            temp_output_swap = Path(self.temp_dir) / f"swap_{Path(input_video).stem}.mp4"
+            
+            cmd_step2 = [
+                sys.executable, "run.py",
+                "-s", source_image,
+                "-t", str(temp_input),
+                "-o", str(temp_output_swap)
+            ] + self.default_args + ["--frame-processor", "face_swapper"]
+            
+            result = subprocess.run(cmd_step2, check=True, capture_output=True, text=True)
+            print(f"✅ Face swap completado")
+            
+            # Paso 3: Segundo face enhancer
+            print(f"\n✨ Paso 3: Segundo face enhancer")
+            print("-" * 60)
+            
+            cmd_step3 = [
+                sys.executable, "run.py",
+                "-s", source_image,
+                "-t", str(temp_output_swap),
+                "-o", str(output_path)
+            ] + self.default_args + ["--frame-processor", "face_enhancer"]
+            
+            result = subprocess.run(cmd_step3, check=True, capture_output=True, text=True)
+            
             end_time = time.time()
             processing_time = end_time - start_time
             
-            print(f"✅ Completado en {processing_time:.1f} segundos")
+            print(f"✅ Segundo face enhancer completado")
+            print(f"✅ Procesamiento completo en {processing_time:.1f} segundos")
+            print(f"📁 Archivo final: {output_path}")
+            
+            # Limpiar archivos temporales
+            if temp_output.exists():
+                temp_output.unlink()
+            if temp_output_swap.exists():
+                temp_output_swap.unlink()
+            
             return True
             
         except subprocess.CalledProcessError as e:
-            print(f"❌ Error procesando {input_path.name}:")
+            print(f"❌ Error procesando {Path(input_video).name}:")
             print(f"   Código de error: {e.returncode}")
             if e.stdout:
                 print(f"   Salida: {e.stdout}")
             if e.stderr:
                 print(f"   Error: {e.stderr}")
+            
+            # Limpiar archivos temporales en caso de error
+            if temp_output.exists():
+                temp_output.unlink()
+            if temp_output_swap.exists():
+                temp_output_swap.unlink()
+            
             return False
     
     def run_batch_processing(self):
         """Ejecuta el procesamiento por lotes"""
-        print("🚀 Iniciando procesamiento por lotes...")
+        print("🚀 Iniciando procesamiento por lotes con doble face enhancer...")
         print("=" * 60)
         
         # Verificar imagen fuente
@@ -128,8 +182,9 @@ class BatchProcessor:
         if not input_videos:
             return False
         
-        # Asegurar carpeta de salida
+        # Asegurar carpetas de salida y temporal
         self.ensure_output_dir()
+        self.ensure_temp_dir()
         
         # Procesar cada video
         total_videos = len(input_videos)
