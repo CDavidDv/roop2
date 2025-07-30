@@ -88,7 +88,10 @@ class BatchProcessor:
             "-o", str(output_path)
         ] + self.default_args
         
-        print(f"\n🎬 Procesando: {input_video.name}")
+        # Obtener nombre del archivo desde el path
+        video_name = Path(input_video).name
+        
+        print(f"\n🎬 Procesando: {video_name}")
         print(f"   Entrada: {input_video}")
         print(f"   Salida: {output_path}")
         print(f"   Comando: {' '.join(cmd)}")
@@ -105,7 +108,7 @@ class BatchProcessor:
             return True
             
         except subprocess.CalledProcessError as e:
-            print(f"❌ Error procesando {input_video.name}:")
+            print(f"❌ Error procesando {video_name}:")
             print(f"   Código de error: {e.returncode}")
             if e.stdout:
                 print(f"   Salida: {e.stdout}")
