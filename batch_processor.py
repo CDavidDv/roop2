@@ -88,7 +88,7 @@ class BatchProcessor:
             "-o", str(output_path)
         ] + self.default_args
         
-        print(f"\n🎬 Procesando: {input_path.name}")
+        print(f"\n🎬 Procesando: {input_video.name}")
         print(f"   Entrada: {input_video}")
         print(f"   Salida: {output_path}")
         print(f"   Comando: {' '.join(cmd)}")
@@ -105,7 +105,7 @@ class BatchProcessor:
             return True
             
         except subprocess.CalledProcessError as e:
-            print(f"❌ Error procesando {input_path.name}:")
+            print(f"❌ Error procesando {input_video.name}:")
             print(f"   Código de error: {e.returncode}")
             if e.stdout:
                 print(f"   Salida: {e.stdout}")
