@@ -23,9 +23,12 @@ def get_face_swapper() -> Any:
     with THREAD_LOCK:
         if FACE_SWAPPER is None:
             model_path = resolve_relative_path('../models/inswapper_128.onnx')
-            # Configuración optimizada para Google Colab
-            providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
-            print(f"[FACE_SWAPPER] Usando providers optimizados: {providers}")
+            # Forzar uso de CUDA si está disponible
+            providers = roop.globals.execution_providers
+            if 'CUDAExecutionProvider' in onnxruntime.get_available_providers():
+                # Asegurar que CUDA esté primero en la lista
+                providers = ['CUDAExecutionProvider'] + [p for p in providers if p != 'CUDAExecutionProvider']
+                print(f"[FACE_SWAPPER] Usando providers: {providers}")
             
             FACE_SWAPPER = insightface.model_zoo.get_model(model_path, providers=providers)
     return FACE_SWAPPER

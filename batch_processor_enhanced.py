@@ -8,19 +8,42 @@ from pathlib import Path
 import time
 from filename_generator import generate_output_filename
 
-class BatchProcessor:
-    def __init__(self):
+class EnhancedBatchProcessor:
+    def __init__(self, pipeline_type="full"):
         self.source_dir = "source"
         self.input_dir = "videos_input"
         self.output_dir = "videos_output"
+        
+        # Configurar diferentes pipelines según el tipo
+        if pipeline_type == "full":
+            # Pipeline completo: pre_enhancer -> face_swapper -> post_enhancer
+            self.frame_processors = ["pre_face_enhancer", "face_swapper", "post_face_enhancer"]
+            self.pipeline_name = "Pipeline Completo"
+        elif pipeline_type == "basic":
+            # Pipeline básico: face_swapper -> face_enhancer (original)
+            self.frame_processors = ["face_swapper", "face_enhancer"]
+            self.pipeline_name = "Pipeline Básico"
+        elif pipeline_type == "pre_only":
+            # Solo mejora antes del swap
+            self.frame_processors = ["pre_face_enhancer", "face_swapper"]
+            self.pipeline_name = "Mejora Antes del Swap"
+        elif pipeline_type == "post_only":
+            # Solo mejora después del swap
+            self.frame_processors = ["face_swapper", "post_face_enhancer"]
+            self.pipeline_name = "Mejora Después del Swap"
+        else:
+            # Pipeline personalizado
+            self.frame_processors = pipeline_type.split(",")
+            self.pipeline_name = f"Pipeline Personalizado: {', '.join(self.frame_processors)}"
+        
         self.default_args = [
             "--execution-provider", "cuda",
             "--max-memory", "12",
-            "--execution-threads", "30",
+            "--execution-threads", "8",  # Optimizado para Tesla T4
             "--temp-frame-quality", "100",
             "--keep-fps",
-            "--frame-processor", "face_swapper", "face_enhancer"
-        ]
+            "--frame-processor"
+        ] + self.frame_processors
     
     def find_source_image(self):
         """Busca la imagen fuente en la carpeta source"""
@@ -80,18 +103,20 @@ class BatchProcessor:
         # Crear nombre de archivo de salida combinando imagen y video
         output_path = generate_output_filename(source_image, input_video, self.output_dir)
         
-        # Construir comando
+        # Construir comando usando el script mejorado
         cmd = [
-            sys.executable, "run.py",
+            sys.executable, "run_enhanced_pipeline.py",
             "-s", source_image,
             "-t", input_video,
             "-o", str(output_path)
         ] + self.default_args
         
+        input_path = Path(input_video)
         print(f"\n🎬 Procesando: {input_path.name}")
         print(f"   Entrada: {input_video}")
         print(f"   Salida: {output_path}")
-        print(f"   Comando: {' '.join(cmd)}")
+        print(f"   Pipeline: {self.pipeline_name}")
+        print(f"   Processors: {' -> '.join(self.frame_processors)}")
         print("-" * 60)
         
         start_time = time.time()
@@ -115,7 +140,10 @@ class BatchProcessor:
     
     def run_batch_processing(self):
         """Ejecuta el procesamiento por lotes"""
-        print("🚀 Iniciando procesamiento por lotes...")
+        print("🚀 Iniciando procesamiento por lotes MEJORADO...")
+        print("=" * 60)
+        print(f"🔧 Pipeline: {self.pipeline_name}")
+        print(f"⚙️  Processors: {' -> '.join(self.frame_processors)}")
         print("=" * 60)
         
         # Verificar imagen fuente
@@ -151,6 +179,7 @@ class BatchProcessor:
         print("\n" + "=" * 60)
         print("📊 RESUMEN FINAL")
         print("=" * 60)
+        print(f"🔧 Pipeline usado: {self.pipeline_name}")
         print(f"✅ Videos procesados exitosamente: {successful}")
         print(f"❌ Videos con errores: {failed}")
         print(f"📁 Videos guardados en: {self.output_dir}")
@@ -163,7 +192,24 @@ class BatchProcessor:
         return successful > 0
 
 def main():
-    processor = BatchProcessor()
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Batch Processor Mejorado para Roop')
+    parser.add_argument('--pipeline', choices=['full', 'basic', 'pre_only', 'post_only', 'custom'],
+                       default='full', help='Tipo de pipeline a usar')
+    parser.add_argument('--custom-processors', help='Processors personalizados separados por coma (ej: pre_face_enhancer,face_swapper,post_face_enhancer)')
+    
+    args = parser.parse_args()
+    
+    if args.pipeline == 'custom':
+        if not args.custom_processors:
+            print("❌ Error: --custom-processors es requerido cuando --pipeline=custom")
+            return False
+        pipeline_type = args.custom_processors
+    else:
+        pipeline_type = args.pipeline
+    
+    processor = EnhancedBatchProcessor(pipeline_type)
     success = processor.run_batch_processing()
     sys.exit(0 if success else 1)
 
