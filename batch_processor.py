@@ -6,6 +6,7 @@ import subprocess
 import glob
 from pathlib import Path
 import time
+from filename_generator import generate_output_filename
 
 class BatchProcessor:
     def __init__(self):
@@ -76,10 +77,8 @@ class BatchProcessor:
     
     def process_video(self, source_image, input_video):
         """Procesa un video individual"""
-        # Crear nombre de archivo de salida
-        input_path = Path(input_video)
-        output_filename = f"processed_{input_path.stem}.mp4"
-        output_path = Path(self.output_dir) / output_filename
+        # Crear nombre de archivo de salida combinando imagen y video
+        output_path = generate_output_filename(source_image, input_video, self.output_dir)
         
         # Construir comando
         cmd = [

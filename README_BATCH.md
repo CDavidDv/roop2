@@ -116,16 +116,32 @@ python setup_folders.py
 
 # 2. Colocar archivos
 # - source/rostro.jpg
-# - videos_input/video1.mp4
-# - videos_input/video2.mp4
+# - videos_input/pelicula.mp4
+# - videos_input/entrevista.mp4
 
 # 3. Procesar por lotes
 python batch_processor.py
 
 # 4. Resultados en videos_output/
-# - processed_video1.mp4
-# - processed_video2.mp4
+# - rostro_pelicula.mp4
+# - rostro_entrevista.mp4
 ```
+
+### 📝 Sistema de Nombres Inteligente
+
+Los archivos de salida se nombran automáticamente combinando:
+- **Nombre de la imagen fuente** + **Nombre del video**
+
+Ejemplos:
+- `source/actor.jpg` + `videos_input/pelicula.mp4` → `videos_output/actor_pelicula.mp4`
+- `source/rostro.png` + `videos_input/entrevista.avi` → `videos_output/rostro_entrevista.mp4`
+
+### 🎯 Ventajas del sistema de nombres:
+- ✅ Identifica fácilmente qué rostro se usó
+- ✅ Identifica fácilmente qué video se procesó  
+- ✅ Evita conflictos de nombres
+- ✅ Organización automática
+- ✅ Fácil de buscar y filtrar
 
 ## 🎉 ¡Listo para usar!
 
