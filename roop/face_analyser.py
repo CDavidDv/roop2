@@ -16,12 +16,9 @@ def get_face_analyser() -> Any:
 
     with THREAD_LOCK:
         if FACE_ANALYSER is None:
-            # Forzar uso de CUDA si está disponible
-            providers = roop.globals.execution_providers
-            if 'CUDAExecutionProvider' in onnxruntime.get_available_providers():
-                # Asegurar que CUDA esté primero en la lista
-                providers = ['CUDAExecutionProvider'] + [p for p in providers if p != 'CUDAExecutionProvider']
-                print(f"[FACE_ANALYSER] Usando providers: {providers}")
+            # Configuración optimizada para Google Colab
+            providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+            print(f"[FACE_ANALYSER] Usando providers optimizados: {providers}")
             
             FACE_ANALYSER = insightface.app.FaceAnalysis(name='buffalo_l', providers=providers)
             FACE_ANALYSER.prepare(ctx_id=0)
