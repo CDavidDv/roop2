@@ -17,8 +17,9 @@ class BatchProcessor:
         self.default_args = [
             "--execution-provider", "cuda",
             "--max-memory", "12",
-            "--execution-threads", "30",
+            "--execution-threads", "40",
             "--temp-frame-quality", "100",
+            "--keep-frames",
             "--keep-fps"
         ]
     
@@ -106,6 +107,11 @@ class BatchProcessor:
             result = subprocess.run(cmd_step1, check=True, capture_output=True, text=True)
             print(f"✅ Primer face enhancer completado")
             
+            # Verificar que el archivo temporal se creó correctamente
+            if not temp_output.exists():
+                print(f"❌ Error: No se creó el archivo temporal {temp_output}")
+                return False
+            
             # Paso 2: Face swap
             print(f"\n🔄 Paso 2: Face swap")
             print("-" * 60)
@@ -122,6 +128,14 @@ class BatchProcessor:
             
             result = subprocess.run(cmd_step2, check=True, capture_output=True, text=True)
             print(f"✅ Face swap completado")
+            
+            # Verificar que el archivo de face swap se creó correctamente
+            if not temp_output_swap.exists():
+                print(f"❌ Error: No se creó el archivo de face swap {temp_output_swap}")
+                # Limpiar archivo temporal del paso 1
+                if temp_output.exists():
+                    temp_output.unlink()
+                return False
             
             # Paso 3: Segundo face enhancer
             print(f"\n✨ Paso 3: Segundo face enhancer")
@@ -142,6 +156,16 @@ class BatchProcessor:
             print(f"✅ Segundo face enhancer completado")
             print(f"✅ Procesamiento completo en {processing_time:.1f} segundos")
             print(f"📁 Archivo final: {output_path}")
+            
+            # Verificar que el archivo final se creó correctamente
+            if not Path(output_path).exists():
+                print(f"❌ Error: No se creó el archivo final {output_path}")
+                # Limpiar archivos temporales
+                if temp_output.exists():
+                    temp_output.unlink()
+                if temp_output_swap.exists():
+                    temp_output_swap.unlink()
+                return False
             
             # Limpiar archivos temporales
             if temp_output.exists():
