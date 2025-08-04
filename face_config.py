@@ -18,7 +18,7 @@ FACE_DETECTION_CONFIG = {
     # Formato de frames temporales
     "temp_frame_format": "jpg",
     
-    # Calidad de frames temporales (0-100)
+    # Calidad de frames temporales (0-100) - SIEMPRE usar 100 para mejor detección
     "temp_frame_quality": "100",
     
     # Procesar múltiples rostros
@@ -44,7 +44,7 @@ FACE_DETECTION_CONFIG = {
         "low_quality": {
             "description": "Videos de baja calidad",
             "similar_face_distance": "0.75",
-            "temp_frame_quality": "90"
+            "temp_frame_quality": "100"  # Mantener calidad máxima incluso para videos de baja calidad
         }
     }
 }

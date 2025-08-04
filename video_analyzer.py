@@ -192,7 +192,7 @@ class VideoAnalyzer:
         config = {
             "similar_face_distance": "0.85",
             "reference_face_position": "0",
-            "temp_frame_quality": "100",
+            "temp_frame_quality": "100",  # Siempre usar calidad máxima por defecto
             "many_faces": False,
             "reasoning": []
         }
@@ -212,7 +212,7 @@ class VideoAnalyzer:
         
         if avg_face_size < 0.01:  # Rostros muy pequeños
             config["similar_face_distance"] = "0.75"
-            config["temp_frame_quality"] = "100"
+            config["temp_frame_quality"] = "100"  # Mantener calidad máxima para rostros pequeños
             config["reasoning"].append("Rostros pequeños detectados")
         elif avg_face_size > 0.1:  # Rostros muy grandes
             config["similar_face_distance"] = "0.90"
@@ -223,7 +223,7 @@ class VideoAnalyzer:
         
         if quality == "low":
             config["similar_face_distance"] = "0.75"
-            config["temp_frame_quality"] = "90"
+            config["temp_frame_quality"] = "100"  # Mantener calidad máxima incluso para videos de baja calidad
             config["reasoning"].append("Video de baja calidad")
         elif quality == "high":
             config["temp_frame_quality"] = "100"
@@ -232,7 +232,7 @@ class VideoAnalyzer:
         # Configurar basado en duración
         duration = face_analysis.get("duration_seconds", 0)
         if duration > 300:  # Más de 5 minutos
-            config["temp_frame_quality"] = "95"  # Reducir ligeramente para videos largos
+            config["temp_frame_quality"] = "100"  # Mantener calidad máxima incluso para videos largos
             config["reasoning"].append("Video largo detectado")
         
         return config
