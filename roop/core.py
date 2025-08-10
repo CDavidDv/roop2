@@ -14,7 +14,14 @@ import signal
 import shutil
 import argparse
 import onnxruntime
-import tensorflow
+# TensorFlow puede fallar a importar por conflictos de JAX/Numpy en algunos entornos.
+# En ese caso, seguimos sin TensorFlow (solo se usa para limitar memoria GPU).
+try:
+    import tensorflow  # type: ignore
+    HAS_TENSORFLOW = True
+except Exception:
+    tensorflow = None  # type: ignore
+    HAS_TENSORFLOW = False
 import roop.globals
 import roop.metadata
 import roop.ui as ui
@@ -95,16 +102,17 @@ def suggest_execution_threads() -> int:
 
 
 def limit_resources() -> None:
-    # prevent tensorflow memory leak
-    gpus = tensorflow.config.experimental.list_physical_devices('GPU')
-    for gpu in gpus:
-        # Increase memory limit for CUDA if available
-        # Tesla T4 has 15GB VRAM, use 12GB to leave room for system
-        memory_limit = 12288 if 'CUDAExecutionProvider' in roop.globals.execution_providers else 12288
-        tensorflow.config.experimental.set_virtual_device_configuration(gpu, [
-            tensorflow.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)
-        ])
-    # limit memory usage
+    # prevent tensorflow memory leak (opcional)
+    if HAS_TENSORFLOW:
+        gpus = tensorflow.config.experimental.list_physical_devices('GPU')  # type: ignore[attr-defined]
+        for gpu in gpus:
+            # Increase memory limit for CUDA if available
+            # Tesla T4 has 15GB VRAM, use 12GB to leave room for system
+            memory_limit = 12288 if 'CUDAExecutionProvider' in roop.globals.execution_providers else 12288
+            tensorflow.config.experimental.set_virtual_device_configuration(gpu, [  # type: ignore[attr-defined]
+                tensorflow.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)  # type: ignore[attr-defined]
+            ])
+    # limit memory usage (independiente de TensorFlow)
     if roop.globals.max_memory:
         memory = roop.globals.max_memory * 1024 ** 3
         if platform.system().lower() == 'darwin':
