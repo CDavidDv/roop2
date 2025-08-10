@@ -66,45 +66,41 @@ def get_face_args_for_video(video_path):
     Obtiene argumentos específicos para un video basado en su nombre
     y análisis automático si está disponible
     """
-    video_name = Path(video_path).name.lower()
-    
     # Intentar análisis automático primero
-    auto_config = get_auto_analysis_config(video_path)
-    if auto_config:
+    auto_args = get_auto_analysis_args(video_path)
+    if auto_args:
         print(f"🤖 Usando configuración automática para {Path(video_path).name}")
-        return auto_config
+        return auto_args
     
     # Fallback a configuración basada en nombre
     print(f"📝 Usando configuración basada en nombre para {Path(video_path).name}")
     return get_name_based_config(video_path)
 
-def get_auto_analysis_config(video_path):
+def get_auto_analysis_args(video_path):
     """
-    Obtiene configuración basada en análisis automático del video
+    Convierte el análisis automático (dict) en argumentos de CLI (lista de strings)
     """
     try:
-        # Verificar si existe el analizador
-        from video_analyzer import analyze_video_auto
+        from video_analyzer import VideoAnalyzer
         
-        # Verificar cache
+        # Verificar cache local de args
         if video_path in AUTO_ANALYSIS_CACHE:
             config = AUTO_ANALYSIS_CACHE[video_path]
         else:
-            # Realizar análisis automático
-            config = analyze_video_auto(video_path)
+            analyzer = VideoAnalyzer()
+            config = analyzer.analyze_video_auto(video_path)  # dict
             AUTO_ANALYSIS_CACHE[video_path] = config
         
-        # Convertir configuración a argumentos
-        args = []
+        if not isinstance(config, dict):
+            return None
         
+        args = []
         if config.get("many_faces", False):
             args.append("--many-faces")
         
         args.extend([
-            "--similar-face-distance", config.get("similar_face_distance", "0.85"),
-            "--reference-face-position", config.get("reference_face_position", "0"),
-            "--temp-frame-format", "jpg",
-            "--temp-frame-quality", config.get("temp_frame_quality", "100")
+            "--similar-face-distance", str(config.get("similar_face_distance", "0.85")),
+            "--reference-face-position", str(config.get("reference_face_position", "0"))
         ])
         
         return args
@@ -126,9 +122,7 @@ def get_name_based_config(video_path):
     args = [
         "--many-faces" if FACE_DETECTION_CONFIG["many_faces"] else None,
         "--similar-face-distance", FACE_DETECTION_CONFIG["similar_face_distance"],
-        "--reference-face-position", FACE_DETECTION_CONFIG["reference_face_position"],
-        "--temp-frame-format", FACE_DETECTION_CONFIG["temp_frame_format"],
-        "--temp-frame-quality", FACE_DETECTION_CONFIG["temp_frame_quality"]
+        "--reference-face-position", FACE_DETECTION_CONFIG["reference_face_position"]
     ]
     
     # Filtrar valores None
@@ -151,13 +145,6 @@ def get_name_based_config(video_path):
                 for i, arg in enumerate(args):
                     if arg == "--reference-face-position":
                         args[i + 1] = config["reference_face_position"]
-                        break
-            
-            if "temp_frame_quality" in config:
-                # Reemplazar el valor existente
-                for i, arg in enumerate(args):
-                    if arg == "--temp-frame-quality":
-                        args[i + 1] = config["temp_frame_quality"]
                         break
             
             break

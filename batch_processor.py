@@ -32,11 +32,7 @@ class BatchProcessor:
             "--execution-threads", "30",
             "--temp-frame-quality", "100",
             "--keep-frames",
-            "--keep-fps",
-            "--many-faces",  # Procesar todos los rostros encontrados
-            "--similar-face-distance", "0.85",  # Distancia para reconocimiento de rostros
-            "--reference-face-position", "0",  # Posición del rostro de referencia
-            "--temp-frame-format", "jpg"  # Formato de frames temporales
+            "--keep-fps"
         ]
     
     def find_source_image(self):
@@ -105,11 +101,33 @@ class BatchProcessor:
         """Obtiene argumentos específicos para mejorar la detección de rostros"""
         return get_face_args_for_video(video_path)
     
+    def _run_swap_only(self, source_image: str, input_video: str, output_path: Path, face_detection_args):
+        """Fallback: ejecuta solo face_swapper cuando face_enhancer falla"""
+        print("\n⚠️  Fallback: Ejecutando solo face_swapper (sin face_enhancer)")
+        cmd_swap_only = [
+            sys.executable, "run.py",
+            "-s", source_image,
+            "-t", input_video,
+            "-o", str(output_path)
+        ] + self.default_args + face_detection_args + ["--frame-processor", "face_swapper"]
+        try:
+            result = subprocess.run(cmd_swap_only, check=True, capture_output=True, text=True)
+            print("✅ Face swap completado con fallback")
+            return Path(output_path).exists()
+        except subprocess.CalledProcessError as e:
+            print("❌ Fallback con face_swapper también falló:")
+            if e.stdout:
+                print(f"   Salida: {e.stdout}")
+            if e.stderr:
+                print(f"   Error: {e.stderr}")
+            return False
+    
     def process_video(self, source_image, input_video):
         """Procesa un video individual con doble face enhancer"""
         # Crear nombre de archivo de salida combinando imagen y video
         output_path = generate_output_filename(source_image, input_video, self.output_dir)
         temp_output = Path(self.temp_dir) / f"temp_{Path(input_video).stem}.mp4"
+        temp_output_swap = Path(self.temp_dir) / f"swap_{Path(input_video).stem}.mp4"
         
         # Obtener argumentos específicos para detección de rostros
         face_detection_args = self.get_face_detection_args(input_video)
@@ -144,7 +162,6 @@ class BatchProcessor:
             print("-" * 60)
             
             temp_input = temp_output
-            temp_output_swap = Path(self.temp_dir) / f"swap_{Path(input_video).stem}.mp4"
             
             cmd_step2 = [
                 sys.executable, "run.py",
@@ -203,20 +220,29 @@ class BatchProcessor:
             return True
             
         except subprocess.CalledProcessError as e:
-            print(f"❌ Error procesando {Path(input_video).name}:")
+            print(f"❌ Error procesando {Path(input_video).name} (face_enhancer):")
             print(f"   Código de error: {e.returncode}")
             if e.stdout:
                 print(f"   Salida: {e.stdout}")
             if e.stderr:
                 print(f"   Error: {e.stderr}")
             
+            # Intentar fallback: solo face_swapper directo sobre el video original
+            swap_success = self._run_swap_only(source_image, input_video, Path(output_path), face_detection_args)
+            
             # Limpiar archivos temporales en caso de error
             if temp_output.exists():
-                temp_output.unlink()
+                try:
+                    temp_output.unlink()
+                except Exception:
+                    pass
             if temp_output_swap.exists():
-                temp_output_swap.unlink()
+                try:
+                    temp_output_swap.unlink()
+                except Exception:
+                    pass
             
-            return False
+            return swap_success
     
     def run_batch_processing(self):
         """Ejecuta el procesamiento por lotes"""
