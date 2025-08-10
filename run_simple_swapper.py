@@ -7,20 +7,8 @@ import glob
 from pathlib import Path
 import time
 from filename_generator import generate_output_filename
-try:
-    from face_config import get_face_args_for_video
-except ImportError:
-    # Fallback si no existe el archivo de configuración
-    def get_face_args_for_video(video_path):
-        return [
-            "--many-faces",
-            "--similar-face-distance", "0.85",
-            "--reference-face-position", "0",
-            "--temp-frame-format", "jpg",
-            "--temp-frame-quality", "100"
-        ]
 
-class BatchProcessor:
+class SimpleSwapper:
     def __init__(self):
         self.source_dir = "source"
         self.input_dir = "videos_input"
@@ -33,10 +21,10 @@ class BatchProcessor:
             "--temp-frame-quality", "100",
             "--keep-frames",
             "--keep-fps",
-            "--many-faces",  # Procesar todos los rostros encontrados
-            "--similar-face-distance", "0.85",  # Distancia para reconocimiento de rostros
-            "--reference-face-position", "0",  # Posición del rostro de referencia
-            "--temp-frame-format", "jpg"  # Formato de frames temporales
+            "--many-faces",
+            "--similar-face-distance", "0.85",
+            "--reference-face-position", "0",
+            "--temp-frame-format", "jpg"
         ]
     
     def find_source_image(self):
@@ -113,104 +101,39 @@ class BatchProcessor:
         temp_path.mkdir(exist_ok=True)
         print(f"✅ Carpeta temporal: {self.temp_dir}")
     
-    def get_face_detection_args(self, video_path):
-        """Obtiene argumentos específicos para mejorar la detección de rostros"""
-        return get_face_args_for_video(video_path)
-    
     def process_video(self, source_image, input_video):
-        """Procesa un video individual con doble face enhancer"""
-        # Crear nombre de archivo de salida combinando imagen y video
+        """Procesa un video individual usando solo face swapper"""
+        # Crear nombre de archivo de salida
         output_path = generate_output_filename(source_image, input_video, self.output_dir)
-        temp_output = Path(self.temp_dir) / f"temp_{Path(input_video).stem}.mp4"
-        temp_output_swap = Path(self.temp_dir) / f"swap_{Path(input_video).stem}.mp4"
         
-        # Obtener argumentos específicos para detección de rostros
-        face_detection_args = self.get_face_detection_args(input_video)
-        
-        # Paso 1: Primer face enhancer
         print(f"\n🎬 Procesando: {Path(input_video).name}")
         print(f"   Entrada: {input_video}")
-        print(f"   Paso 1: Primer face enhancer")
-        print(f"   Configuración: {' '.join(face_detection_args)}")
+        print(f"   Salida: {output_path}")
+        print(f"   Procesador: face_swapper")
         print("-" * 60)
         
-        cmd_step1 = [
+        cmd = [
             sys.executable, "run.py",
             "-s", source_image,
             "-t", input_video,
-            "-o", str(temp_output)
-        ] + self.default_args + face_detection_args + ["--frame-processor", "face_enhancer"]
+            "-o", str(output_path)
+        ] + self.default_args + ["--frame-processor", "face_swapper"]
         
         start_time = time.time()
         
         try:
-            result = subprocess.run(cmd_step1, check=True, capture_output=True, text=True)
-            print(f"✅ Primer face enhancer completado")
-            
-            # Verificar que el archivo temporal se creó correctamente
-            if not temp_output.exists():
-                print(f"❌ Error: No se creó el archivo temporal {temp_output}")
-                return False
-            
-            # Paso 2: Face swap
-            print(f"\n🔄 Paso 2: Face swap")
-            print("-" * 60)
-            
-            temp_input = temp_output
-            
-            cmd_step2 = [
-                sys.executable, "run.py",
-                "-s", source_image,
-                "-t", str(temp_input),
-                "-o", str(temp_output_swap)
-            ] + self.default_args + face_detection_args + ["--frame-processor", "face_swapper"]
-            
-            result = subprocess.run(cmd_step2, check=True, capture_output=True, text=True)
-            print(f"✅ Face swap completado")
-            
-            # Verificar que el archivo de face swap se creó correctamente
-            if not temp_output_swap.exists():
-                print(f"❌ Error: No se creó el archivo de face swap {temp_output_swap}")
-                # Limpiar archivo temporal del paso 1
-                if temp_output.exists():
-                    temp_output.unlink()
-                return False
-            
-            # Paso 3: Segundo face enhancer
-            print(f"\n✨ Paso 3: Segundo face enhancer")
-            print("-" * 60)
-            
-            cmd_step3 = [
-                sys.executable, "run.py",
-                "-s", source_image,
-                "-t", str(temp_output_swap),
-                "-o", str(output_path)
-            ] + self.default_args + face_detection_args + ["--frame-processor", "face_enhancer"]
-            
-            result = subprocess.run(cmd_step3, check=True, capture_output=True, text=True)
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
             
             end_time = time.time()
             processing_time = end_time - start_time
             
-            print(f"✅ Segundo face enhancer completado")
-            print(f"✅ Procesamiento completo en {processing_time:.1f} segundos")
+            print(f"✅ Procesamiento completado en {processing_time:.1f} segundos")
             print(f"📁 Archivo final: {output_path}")
             
             # Verificar que el archivo final se creó correctamente
             if not Path(output_path).exists():
                 print(f"❌ Error: No se creó el archivo final {output_path}")
-                # Limpiar archivos temporales
-                if temp_output.exists():
-                    temp_output.unlink()
-                if temp_output_swap.exists():
-                    temp_output_swap.unlink()
                 return False
-            
-            # Limpiar archivos temporales
-            if temp_output.exists():
-                temp_output.unlink()
-            if temp_output_swap.exists():
-                temp_output_swap.unlink()
             
             return True
             
@@ -221,18 +144,11 @@ class BatchProcessor:
                 print(f"   Salida: {e.stdout}")
             if e.stderr:
                 print(f"   Error: {e.stderr}")
-            
-            # Limpiar archivos temporales en caso de error
-            if temp_output.exists():
-                temp_output.unlink()
-            if temp_output_swap.exists():
-                temp_output_swap.unlink()
-            
             return False
     
     def run_batch_processing(self):
         """Ejecuta el procesamiento por lotes"""
-        print("🚀 Iniciando procesamiento por lotes con doble face enhancer...")
+        print("🚀 Iniciando procesamiento por lotes con face swapper...")
         print("=" * 60)
         
         # Verificar imagen fuente
@@ -281,9 +197,9 @@ class BatchProcessor:
         return successful > 0
 
 def main():
-    processor = BatchProcessor()
+    processor = SimpleSwapper()
     success = processor.run_batch_processing()
     sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
-    main() 
+    main()
