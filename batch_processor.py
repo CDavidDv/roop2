@@ -7,18 +7,6 @@ import glob
 from pathlib import Path
 import time
 from filename_generator import generate_output_filename
-try:
-    from face_config import get_face_args_for_video
-except ImportError:
-    # Fallback si no existe el archivo de configuración
-    def get_face_args_for_video(video_path):
-        return [
-            "--many-faces",
-            "--similar-face-distance", "0.85",
-            "--reference-face-position", "0",
-            "--temp-frame-format", "jpg",
-            "--temp-frame-quality", "100"
-        ]
 
 class BatchProcessor:
     def __init__(self):
@@ -31,12 +19,7 @@ class BatchProcessor:
             "--max-memory", "12",
             "--execution-threads", "30",
             "--temp-frame-quality", "100",
-            "--keep-frames",
-            "--keep-fps",
-            "--many-faces",  # Procesar todos los rostros encontrados
-            "--similar-face-distance", "0.85",  # Distancia para reconocimiento de rostros
-            "--reference-face-position", "0",  # Posición del rostro de referencia
-            "--temp-frame-format", "jpg"  # Formato de frames temporales
+            "--keep-fps"
         ]
     
     def find_source_image(self):
@@ -63,7 +46,7 @@ class BatchProcessor:
         return source_image
     
     def find_input_videos(self):
-        """Busca todos los videos en videos_input y los ordena alfabéticamente"""
+        """Busca todos los videos en videos_input"""
         input_path = Path(self.input_dir)
         if not input_path.exists():
             print(f"❌ Error: Carpeta '{self.input_dir}' no existe")
@@ -80,12 +63,9 @@ class BatchProcessor:
             print(f"⚠️  No se encontraron videos en '{self.input_dir}'")
             return []
         
-        # Ordenar videos alfabéticamente por nombre
-        video_files.sort(key=lambda x: x.name.lower())
-        
-        print(f"✅ Encontrados {len(video_files)} videos para procesar (ordenados alfabéticamente):")
-        for i, video in enumerate(video_files, 1):
-            print(f"   {i}. {video.name}")
+        print(f"✅ Encontrados {len(video_files)} videos para procesar:")
+        for video in video_files:
+            print(f"   - {video.name}")
         
         return [str(video) for video in video_files]
     
@@ -101,24 +81,24 @@ class BatchProcessor:
         temp_path.mkdir(exist_ok=True)
         print(f"✅ Carpeta temporal: {self.temp_dir}")
     
-    def get_face_detection_args(self, video_path):
-        """Obtiene argumentos específicos para mejorar la detección de rostros"""
-        return get_face_args_for_video(video_path)
-    
     def process_video(self, source_image, input_video):
         """Procesa un video individual con doble face enhancer"""
         # Crear nombre de archivo de salida combinando imagen y video
         output_path = generate_output_filename(source_image, input_video, self.output_dir)
         temp_output = Path(self.temp_dir) / f"temp_{Path(input_video).stem}.mp4"
+        temp_output_swap = Path(self.temp_dir) / f"swap_{Path(input_video).stem}.mp4"
         
-        # Obtener argumentos específicos para detección de rostros
-        face_detection_args = self.get_face_detection_args(input_video)
+        # Argumentos básicos para detección de rostros
+        face_args = [
+            "--many-faces",
+            "--similar-face-distance", "0.85",
+            "--reference-face-position", "0"
+        ]
         
         # Paso 1: Primer face enhancer
         print(f"\n🎬 Procesando: {Path(input_video).name}")
         print(f"   Entrada: {input_video}")
         print(f"   Paso 1: Primer face enhancer")
-        print(f"   Configuración: {' '.join(face_detection_args)}")
         print("-" * 60)
         
         cmd_step1 = [
@@ -126,7 +106,7 @@ class BatchProcessor:
             "-s", source_image,
             "-t", input_video,
             "-o", str(temp_output)
-        ] + self.default_args + face_detection_args + ["--frame-processor", "face_enhancer"]
+        ] + self.default_args + face_args + ["--frame-processor", "face_enhancer"]
         
         start_time = time.time()
         
@@ -144,14 +124,13 @@ class BatchProcessor:
             print("-" * 60)
             
             temp_input = temp_output
-            temp_output_swap = Path(self.temp_dir) / f"swap_{Path(input_video).stem}.mp4"
             
             cmd_step2 = [
                 sys.executable, "run.py",
                 "-s", source_image,
                 "-t", str(temp_input),
                 "-o", str(temp_output_swap)
-            ] + self.default_args + face_detection_args + ["--frame-processor", "face_swapper"]
+            ] + self.default_args + face_args + ["--frame-processor", "face_swapper"]
             
             result = subprocess.run(cmd_step2, check=True, capture_output=True, text=True)
             print(f"✅ Face swap completado")
@@ -173,7 +152,7 @@ class BatchProcessor:
                 "-s", source_image,
                 "-t", str(temp_output_swap),
                 "-o", str(output_path)
-            ] + self.default_args + face_detection_args + ["--frame-processor", "face_enhancer"]
+            ] + self.default_args + face_args + ["--frame-processor", "face_enhancer"]
             
             result = subprocess.run(cmd_step3, check=True, capture_output=True, text=True)
             
