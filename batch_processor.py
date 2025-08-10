@@ -63,7 +63,7 @@ class BatchProcessor:
         return source_image
     
     def find_input_videos(self):
-        """Busca todos los videos en videos_input y los ordena alfabéticamente"""
+        """Busca todos los videos en videos_input y los ordena numéricamente por nombre"""
         input_path = Path(self.input_dir)
         if not input_path.exists():
             print(f"❌ Error: Carpeta '{self.input_dir}' no existe")
@@ -80,10 +80,22 @@ class BatchProcessor:
             print(f"⚠️  No se encontraron videos en '{self.input_dir}'")
             return []
         
-        # Ordenar videos alfabéticamente por nombre
-        video_files.sort(key=lambda x: x.name.lower())
+        # Función para extraer número del nombre del archivo
+        def extract_number(filename):
+            """Extrae el número del nombre del archivo para ordenamiento numérico"""
+            name = filename.stem  # Nombre sin extensión
+            import re
+            # Buscar números al inicio del nombre
+            numbers = re.findall(r'^(\d+)', name)
+            if numbers:
+                return int(numbers[0])
+            # Si no hay números al inicio, usar orden alfabético
+            return float('inf')
         
-        print(f"✅ Encontrados {len(video_files)} videos para procesar (ordenados alfabéticamente):")
+        # Ordenar videos numéricamente por nombre
+        video_files.sort(key=extract_number)
+        
+        print(f"✅ Encontrados {len(video_files)} videos para procesar (ordenados numéricamente):")
         for i, video in enumerate(video_files, 1):
             print(f"   {i}. {video.name}")
         
