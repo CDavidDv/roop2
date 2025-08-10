@@ -63,7 +63,7 @@ class BatchProcessor:
         return source_image
     
     def find_input_videos(self):
-        """Busca todos los videos en videos_input y los ordena numéricamente por nombre"""
+        """Busca todos los videos en videos_input y los ordena alfabéticamente"""
         input_path = Path(self.input_dir)
         if not input_path.exists():
             print(f"❌ Error: Carpeta '{self.input_dir}' no existe")
@@ -80,22 +80,10 @@ class BatchProcessor:
             print(f"⚠️  No se encontraron videos en '{self.input_dir}'")
             return []
         
-        # Función para extraer número del nombre del archivo
-        def extract_number(filename):
-            """Extrae el número del nombre del archivo para ordenamiento numérico"""
-            name = filename.stem  # Nombre sin extensión
-            import re
-            # Buscar números al inicio del nombre
-            numbers = re.findall(r'^(\d+)', name)
-            if numbers:
-                return int(numbers[0])
-            # Si no hay números al inicio, usar orden alfabético
-            return float('inf')
+        # Ordenar videos alfabéticamente por nombre
+        video_files.sort(key=lambda x: x.name.lower())
         
-        # Ordenar videos numéricamente por nombre
-        video_files.sort(key=extract_number)
-        
-        print(f"✅ Encontrados {len(video_files)} videos para procesar (ordenados numéricamente):")
+        print(f"✅ Encontrados {len(video_files)} videos para procesar (ordenados alfabéticamente):")
         for i, video in enumerate(video_files, 1):
             print(f"   {i}. {video.name}")
         
@@ -122,7 +110,6 @@ class BatchProcessor:
         # Crear nombre de archivo de salida combinando imagen y video
         output_path = generate_output_filename(source_image, input_video, self.output_dir)
         temp_output = Path(self.temp_dir) / f"temp_{Path(input_video).stem}.mp4"
-        temp_output_swap = Path(self.temp_dir) / f"swap_{Path(input_video).stem}.mp4"
         
         # Obtener argumentos específicos para detección de rostros
         face_detection_args = self.get_face_detection_args(input_video)
@@ -157,6 +144,7 @@ class BatchProcessor:
             print("-" * 60)
             
             temp_input = temp_output
+            temp_output_swap = Path(self.temp_dir) / f"swap_{Path(input_video).stem}.mp4"
             
             cmd_step2 = [
                 sys.executable, "run.py",
