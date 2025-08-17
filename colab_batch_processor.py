@@ -28,12 +28,22 @@ def get_colab_settings():
     }
 
 def find_files():
-    """Encuentra archivos en el directorio actual"""
-    # Buscar imágenes
-    image_files = list(Path(".").glob("*.jpg")) + list(Path(".").glob("*.png"))
+    """Encuentra archivos en las carpetas específicas"""
+    # Buscar imágenes en la carpeta source
+    source_dir = Path("source")
+    if not source_dir.exists():
+        print("⚠️  Carpeta 'source' no encontrada, creando...")
+        source_dir.mkdir(exist_ok=True)
     
-    # Buscar videos
-    video_files = list(Path(".").glob("*.mp4")) + list(Path(".").glob("*.avi"))
+    image_files = list(source_dir.glob("*.jpg")) + list(source_dir.glob("*.png"))
+    
+    # Buscar videos en la carpeta videos_input
+    input_dir = Path("videos_input")
+    if not input_dir.exists():
+        print("⚠️  Carpeta 'videos_input' no encontrada, creando...")
+        input_dir.mkdir(exist_ok=True)
+    
+    video_files = list(input_dir.glob("*.mp4")) + list(input_dir.glob("*.avi"))
     
     return image_files, video_files
 
@@ -88,17 +98,22 @@ def main_colab():
     print(f"   • Threads: {settings['execution_threads']}")
     print(f"   • Formato: {settings['temp_frame_format']}")
     
+    print(f"\n📁 Estructura de carpetas:")
+    print(f"   • Imágenes fuente: source/")
+    print(f"   • Videos de entrada: videos_input/")
+    print(f"   • Videos procesados: videos_output/")
+    
     # Encontrar archivos
     image_files, video_files = find_files()
     
     if not image_files:
-        print("\n❌ No se encontraron imágenes fuente (.jpg, .png)")
-        print("   Sube una imagen al directorio actual")
+        print(f"\n❌ No se encontraron imágenes fuente en 'source/'")
+        print("   Sube una imagen a la carpeta 'source'")
         return
     
     if not video_files:
-        print("\n❌ No se encontraron videos (.mp4, .avi)")
-        print("   Sube un video al directorio actual")
+        print(f"\n❌ No se encontraron videos en 'videos_input/'")
+        print("   Sube videos a la carpeta 'videos_input'")
         return
     
     # Seleccionar imagen fuente
@@ -106,7 +121,7 @@ def main_colab():
         source_image = image_files[0]
         print(f"\n📸 Imagen fuente automática: {source_image.name}")
     else:
-        print("\n📸 Imágenes encontradas:")
+        print(f"\n📸 Imágenes encontradas en 'source/':")
         for i, img in enumerate(image_files):
             print(f"   {i+1}. {img.name}")
         
@@ -122,7 +137,7 @@ def main_colab():
             return
     
     # Mostrar videos a procesar
-    print(f"\n🎬 Videos encontrados ({len(video_files)}):")
+    print(f"\n🎬 Videos encontrados en 'videos_input/' ({len(video_files)}):")
     for video in video_files:
         print(f"   • {video.name}")
     

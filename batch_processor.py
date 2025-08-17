@@ -65,10 +65,16 @@ def get_optimal_settings(memory_profile):
     }
     return settings.get(memory_profile, settings["medium_memory"])
 
-def find_video_files(directory="."):
-    """Encuentra archivos de video en el directorio"""
+def find_video_files(directory="videos_input"):
+    """Encuentra archivos de video en la carpeta videos_input"""
     video_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm']
     video_files = []
+    
+    # Verificar si la carpeta existe
+    if not Path(directory).exists():
+        print(f"⚠️  Carpeta '{directory}' no encontrada, creando...")
+        Path(directory).mkdir(exist_ok=True)
+        return video_files
     
     for ext in video_extensions:
         video_files.extend(Path(directory).glob(f"*{ext}"))
@@ -76,10 +82,16 @@ def find_video_files(directory="."):
     
     return sorted(video_files)
 
-def find_image_files(directory="."):
-    """Encuentra archivos de imagen en el directorio"""
+def find_image_files(directory="source"):
+    """Encuentra archivos de imagen en la carpeta source"""
     image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp']
     image_files = []
+    
+    # Verificar si la carpeta existe
+    if not Path(directory).exists():
+        print(f"⚠️  Carpeta '{directory}' no encontrada, creando...")
+        Path(directory).mkdir(exist_ok=True)
+        return image_files
     
     for ext in image_extensions:
         image_files.extend(Path(directory).glob(f"*{ext}"))
@@ -130,7 +142,9 @@ def main():
     """Función principal del procesador por lotes"""
     parser = argparse.ArgumentParser(description="ROOP Batch Processor con optimización de memoria")
     parser.add_argument("--source", "-s", help="Imagen fuente (opcional, se detecta automáticamente)")
-    parser.add_argument("--output-dir", "-o", default="output", help="Directorio de salida")
+    parser.add_argument("--output-dir", "-o", default="videos_output", help="Directorio de salida (default: videos_output)")
+    parser.add_argument("--input-dir", "-i", default="videos_input", help="Directorio de entrada (default: videos_input)")
+    parser.add_argument("--source-dir", default="source", help="Directorio de imágenes fuente (default: source)")
     parser.add_argument("--force", "-f", action="store_true", help="Forzar reprocesamiento")
     parser.add_argument("--dry-run", action="store_true", help="Solo mostrar qué se procesaría")
     
@@ -154,18 +168,20 @@ def main():
     output_dir.mkdir(exist_ok=True)
     print(f"\n📁 Directorio de salida: {output_dir.absolute()}")
     
-    # Encontrar archivos
-    source_images = find_image_files()
-    video_files = find_video_files()
+    # Encontrar archivos en las carpetas específicas
+    source_images = find_image_files(args.source_dir)
+    video_files = find_video_files(args.input_dir)
     
     if not source_images:
-        print("❌ No se encontraron archivos de imagen fuente")
-        print("   Coloca una imagen .jpg, .png, etc. en el directorio actual")
+        print(f"\n❌ No se encontraron archivos de imagen fuente en '{args.source_dir}'")
+        print(f"   Coloca una imagen .jpg, .png, etc. en la carpeta '{args.source_dir}'")
+        print(f"   O usa --source-dir para especificar otra carpeta")
         return
     
     if not video_files:
-        print("❌ No se encontraron archivos de video")
-        print("   Coloca un video .mp4, .avi, etc. en el directorio actual")
+        print(f"\n❌ No se encontraron archivos de video en '{args.input_dir}'")
+        print(f"   Coloca videos .mp4, .avi, etc. en la carpeta '{args.input_dir}'")
+        print(f"   O usa --input-dir para especificar otra carpeta")
         return
     
     # Seleccionar imagen fuente
@@ -178,7 +194,7 @@ def main():
         if len(source_images) == 1:
             source_image = source_images[0]
         else:
-            print("\n📸 Imágenes fuente encontradas:")
+            print(f"\n📸 Imágenes fuente encontradas en '{args.source_dir}':")
             for i, img in enumerate(source_images):
                 print(f"   {i+1}. {img.name}")
             
@@ -210,7 +226,7 @@ def main():
         
         video_files = unprocessed_videos
     
-    print(f"\n🎬 Videos a procesar: {len(video_files)}")
+    print(f"\n🎬 Videos a procesar desde '{args.input_dir}' ({len(video_files)}):")
     for video in video_files:
         print(f"   • {video.name}")
     
