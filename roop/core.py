@@ -89,8 +89,8 @@ def suggest_execution_providers() -> List[str]:
 
 def suggest_execution_threads() -> int:
     if 'CUDAExecutionProvider' in onnxruntime.get_available_providers():
-        # Tesla T4 tiene 15GB VRAM, usar 8 threads para optimizar
-        return 12
+        # Permitir más threads para mejor rendimiento
+        return 30
     return 1
 
 

@@ -16,7 +16,7 @@ class BatchProcessor:
         self.temp_dir = "temp_processing"
         self.default_args = [
             "--execution-provider", "cuda",
-            "--max-memory", "12",
+            "--max-memory", "10",
             "--execution-threads", "25",
             "--temp-frame-quality", "100",
             "--many-faces",
