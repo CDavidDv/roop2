@@ -46,13 +46,29 @@ def get_frame_processors_modules(frame_processors: List[str]) -> List[ModuleType
 
 
 def multi_process_frame(source_path: str, temp_frame_paths: List[str], process_frames: Callable[[str, List[str], Any], None], update: Callable[[], None]) -> None:
-    with ThreadPoolExecutor(max_workers=roop.globals.execution_threads) as executor:
+    # Usar batch size optimizado si está habilitado
+    batch_size = getattr(roop.globals, 'batch_size', 5)
+    max_workers = min(roop.globals.execution_threads, batch_size)
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         queue = create_queue(temp_frame_paths)
-        queue_per_future = max(len(temp_frame_paths) // roop.globals.execution_threads, 1)
+        
+        # Procesar en lotes más pequeños para optimizar memoria
+        if roop.globals.memory_optimization:
+            queue_per_future = max(1, min(len(temp_frame_paths) // max_workers, batch_size))
+        else:
+            queue_per_future = max(len(temp_frame_paths) // roop.globals.execution_threads, 1)
+            
         while not queue.empty():
             future = executor.submit(process_frames, source_path, pick_queue(queue, queue_per_future), update)
             futures.append(future)
+            
+            # Pausa entre lotes para permitir limpieza de memoria
+            if roop.globals.memory_optimization and len(futures) % 3 == 0:
+                import gc
+                gc.collect()
+        
         for future in as_completed(futures):
             future.result()
 
@@ -82,10 +98,23 @@ def process_video(source_path: str, frame_paths: list[str], process_frames: Call
 def update_progress(progress: Any = None) -> None:
     process = psutil.Process(os.getpid())
     memory_usage = process.memory_info().rss / 1024 / 1024 / 1024
+    
+    # Información adicional de memoria si está habilitada la optimización
+    memory_info = f'{memory_usage:.2f}GB'
+    if roop.globals.memory_optimization:
+        try:
+            import roop.memory_optimizer
+            optimizer = roop.memory_optimizer.get_memory_optimizer()
+            system_usage, gpu_usage = optimizer.get_memory_usage()
+            memory_info += f' (S:{system_usage:.1%}, G:{gpu_usage:.1%})'
+        except:
+            pass
+    
     progress.set_postfix({
-        'memory_usage': '{:.2f}'.format(memory_usage).zfill(5) + 'GB',
+        'memory_usage': memory_info,
         'execution_providers': roop.globals.execution_providers,
-        'execution_threads': roop.globals.execution_threads
+        'execution_threads': roop.globals.execution_threads,
+        'batch_size': getattr(roop.globals, 'batch_size', 'N/A')
     })
     progress.refresh()
     progress.update(1)

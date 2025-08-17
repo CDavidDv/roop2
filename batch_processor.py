@@ -1,257 +1,275 @@
 #!/usr/bin/env python3
+"""
+Batch Processor para ROOP con optimizaciones de memoria
+Perfecto para usar con !python en Google Colab o Jupyter Notebook
+"""
 
 import os
 import sys
 import subprocess
-import glob
+import argparse
 from pathlib import Path
 import time
-from filename_generator import generate_output_filename
 
-class BatchProcessor:
-    def __init__(self):
-        self.source_dir = "source"
-        self.input_dir = "videos_input"
-        self.output_dir = "videos_output"
-        self.temp_dir = "temp_processing"
-        self.default_args = [
-            "--execution-provider", "cuda",
-            "--max-memory", "10",
-            "--execution-threads", "25",
-            "--temp-frame-quality", "100",
-            "--many-faces",
-            "--keep-fps"
-        ]
-    
-    def find_source_image(self):
-        """Busca la imagen fuente en la carpeta source"""
-        source_path = Path(self.source_dir)
-        if not source_path.exists():
-            print(f"❌ Error: Carpeta '{self.source_dir}' no existe")
-            return None
+def print_banner():
+    """Muestra un banner informativo"""
+    print("🚀" * 50)
+    print("🎬 ROOP BATCH PROCESSOR - Optimizado para Memoria 🎬")
+    print("🚀" * 50)
+    print("✨ Características:")
+    print("   • Optimización automática de memoria")
+    print("   • Procesamiento en lotes inteligentes")
+    print("   • Monitoreo de memoria en tiempo real")
+    print("   • Configuración automática según el sistema")
+    print("🚀" * 50)
+
+def get_system_info():
+    """Obtiene información del sistema para optimización automática"""
+    try:
+        import psutil
+        memory_gb = psutil.virtual_memory().total / (1024**3)
         
-        # Buscar archivos de imagen comunes
-        image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff']
-        source_files = []
-        
-        for ext in image_extensions:
-            source_files.extend(source_path.glob(ext))
-        
-        if not source_files:
-            print(f"❌ Error: No se encontraron imágenes en '{self.source_dir}'")
-            return None
-        
-        # Usar la primera imagen encontrada
-        source_image = str(source_files[0])
-        print(f"✅ Imagen fuente encontrada: {source_image}")
-        return source_image
-    
-    def find_input_videos(self):
-        """Busca todos los videos en videos_input"""
-        input_path = Path(self.input_dir)
-        if not input_path.exists():
-            print(f"❌ Error: Carpeta '{self.input_dir}' no existe")
-            return []
-        
-        # Buscar archivos de video comunes
-        video_extensions = ['*.mp4', '*.avi', '*.mov', '*.mkv', '*.wmv', '*.flv']
-        video_files = []
-        
-        for ext in video_extensions:
-            video_files.extend(input_path.glob(ext))
-        
-        if not video_files:
-            print(f"⚠️  No se encontraron videos en '{self.input_dir}'")
-            return []
-        
-        print(f"✅ Encontrados {len(video_files)} videos para procesar:")
-        for video in video_files:
-            print(f"   - {video.name}")
-        
-        return [str(video) for video in video_files]
-    
-    def ensure_output_dir(self):
-        """Asegura que existe la carpeta de salida"""
-        output_path = Path(self.output_dir)
-        output_path.mkdir(exist_ok=True)
-        print(f"✅ Carpeta de salida: {self.output_dir}")
-    
-    def ensure_temp_dir(self):
-        """Asegura que existe la carpeta temporal"""
-        temp_path = Path(self.temp_dir)
-        temp_path.mkdir(exist_ok=True)
-        print(f"✅ Carpeta temporal: {self.temp_dir}")
-    
-    def process_video(self, source_image, input_video):
-        """Procesa un video individual con doble face enhancer"""
-        # Crear nombre de archivo de salida combinando imagen y video
-        output_path = generate_output_filename(source_image, input_video, self.output_dir)
-        temp_output = Path(self.temp_dir) / f"temp_{Path(input_video).stem}.mp4"
-        temp_output_swap = Path(self.temp_dir) / f"swap_{Path(input_video).stem}.mp4"
-        
-        # Argumentos básicos para detección de rostros
-        face_args = [
-            "--many-faces",
-            "--similar-face-distance", "0.85",
-            "--reference-face-position", "0"
-        ]
-        
-        # Paso 1: Primer face enhancer
-        print(f"\n🎬 Procesando: {Path(input_video).name}")
-        print(f"   Entrada: {input_video}")
-        print(f"   Paso 1: Primer face enhancer")
-        print("-" * 60)
-        
-        cmd_step1 = [
-            sys.executable, "run.py",
-            "-s", source_image,
-            "-t", input_video,
-            "-o", str(temp_output)
-        ] + self.default_args + face_args + ["--frame-processor", "face_enhancer"]
-        
-        start_time = time.time()
-        
-        try:
-            result = subprocess.run(cmd_step1, check=True, capture_output=True, text=True)
-            print(f"✅ Primer face enhancer completado")
-            
-            # Verificar que el archivo temporal se creó correctamente
-            if not temp_output.exists():
-                print(f"❌ Error: No se creó el archivo temporal {temp_output}")
-                return False
-            
-            # Paso 2: Face swap
-            print(f"\n🔄 Paso 2: Face swap")
-            print("-" * 60)
-            
-            temp_input = temp_output
-            
-            cmd_step2 = [
-                sys.executable, "run.py",
-                "-s", source_image,
-                "-t", str(temp_input),
-                "-o", str(temp_output_swap)
-            ] + self.default_args + face_args + ["--frame-processor", "face_swapper"]
-            
-            result = subprocess.run(cmd_step2, check=True, capture_output=True, text=True)
-            print(f"✅ Face swap completado")
-            
-            # Verificar que el archivo de face swap se creó correctamente
-            if not temp_output_swap.exists():
-                print(f"❌ Error: No se creó el archivo de face swap {temp_output_swap}")
-                # Limpiar archivo temporal del paso 1
-                if temp_output.exists():
-                    temp_output.unlink()
-                return False
-            
-            # Paso 3: Segundo face enhancer
-            print(f"\n✨ Paso 3: Segundo face enhancer")
-            print("-" * 60)
-            
-            cmd_step3 = [
-                sys.executable, "run.py",
-                "-s", source_image,
-                "-t", str(temp_output_swap),
-                "-o", str(output_path)
-            ] + self.default_args + face_args + ["--frame-processor", "face_enhancer"]
-            
-            result = subprocess.run(cmd_step3, check=True, capture_output=True, text=True)
-            
-            end_time = time.time()
-            processing_time = end_time - start_time
-            
-            print(f"✅ Segundo face enhancer completado")
-            print(f"✅ Procesamiento completo en {processing_time:.1f} segundos")
-            print(f"📁 Archivo final: {output_path}")
-            
-            # Verificar que el archivo final se creó correctamente
-            if not Path(output_path).exists():
-                print(f"❌ Error: No se creó el archivo final {output_path}")
-                # Limpiar archivos temporales
-                if temp_output.exists():
-                    temp_output.unlink()
-                if temp_output_swap.exists():
-                    temp_output_swap.unlink()
-                return False
-            
-            # Limpiar archivos temporales
-            if temp_output.exists():
-                temp_output.unlink()
-            if temp_output_swap.exists():
-                temp_output_swap.unlink()
-            
-            return True
-            
-        except subprocess.CalledProcessError as e:
-            print(f"❌ Error procesando {Path(input_video).name}:")
-            print(f"   Código de error: {e.returncode}")
-            if e.stdout:
-                print(f"   Salida: {e.stdout}")
-            if e.stderr:
-                print(f"   Error: {e.stderr}")
-            
-            # Limpiar archivos temporales en caso de error
-            if temp_output.exists():
-                temp_output.unlink()
-            if temp_output_swap.exists():
-                temp_output_swap.unlink()
-            
-            return False
-    
-    def run_batch_processing(self):
-        """Ejecuta el procesamiento por lotes"""
-        print("🚀 Iniciando procesamiento por lotes con doble face enhancer...")
-        print("=" * 60)
-        
-        # Verificar imagen fuente
-        source_image = self.find_source_image()
-        if not source_image:
-            return False
-        
-        # Verificar videos de entrada
-        input_videos = self.find_input_videos()
-        if not input_videos:
-            return False
-        
-        # Asegurar carpetas de salida y temporal
-        self.ensure_output_dir()
-        self.ensure_temp_dir()
-        
-        # Procesar cada video
-        total_videos = len(input_videos)
-        successful = 0
-        failed = 0
-        
-        print(f"\n📊 Iniciando procesamiento de {total_videos} videos...")
-        print("=" * 60)
-        
-        for i, video in enumerate(input_videos, 1):
-            print(f"\n[{i}/{total_videos}] Procesando video...")
-            
-            if self.process_video(source_image, video):
-                successful += 1
-            else:
-                failed += 1
-        
-        # Resumen final
-        print("\n" + "=" * 60)
-        print("📊 RESUMEN FINAL")
-        print("=" * 60)
-        print(f"✅ Videos procesados exitosamente: {successful}")
-        print(f"❌ Videos con errores: {failed}")
-        print(f"📁 Videos guardados en: {self.output_dir}")
-        
-        if successful > 0:
-            print(f"\n🎉 ¡Procesamiento completado! {successful} videos procesados.")
+        if memory_gb < 8:
+            return "low_memory"
+        elif memory_gb < 16:
+            return "medium_memory"
         else:
-            print(f"\n⚠️  No se pudo procesar ningún video.")
+            return "high_memory"
+    except:
+        return "medium_memory"  # Default seguro
+
+def get_optimal_settings(memory_profile):
+    """Obtiene configuraciones óptimas según el perfil de memoria"""
+    settings = {
+        "low_memory": {
+            "batch_size": 1,
+            "max_memory": 4,
+            "execution_threads": 6,
+            "temp_frame_format": "jpg",
+            "temp_frame_quality": 85
+        },
+        "medium_memory": {
+            "batch_size": 2,
+            "max_memory": 8,
+            "execution_threads": 12,
+            "temp_frame_format": "png",
+            "temp_frame_quality": 95
+        },
+        "high_memory": {
+            "batch_size": 3,
+            "max_memory": 16,
+            "execution_threads": 20,
+            "temp_frame_format": "png",
+            "temp_frame_quality": 100
+        }
+    }
+    return settings.get(memory_profile, settings["medium_memory"])
+
+def find_video_files(directory="."):
+    """Encuentra archivos de video en el directorio"""
+    video_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm']
+    video_files = []
+    
+    for ext in video_extensions:
+        video_files.extend(Path(directory).glob(f"*{ext}"))
+        video_files.extend(Path(directory).glob(f"*{ext.upper()}"))
+    
+    return sorted(video_files)
+
+def find_image_files(directory="."):
+    """Encuentra archivos de imagen en el directorio"""
+    image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp']
+    image_files = []
+    
+    for ext in image_extensions:
+        image_files.extend(Path(directory).glob(f"*{ext}"))
+        image_files.extend(Path(directory).glob(f"*{ext.upper()}"))
+    
+    return sorted(image_files)
+
+def process_single_video(source_image, target_video, output_dir, settings):
+    """Procesa un solo video con las configuraciones optimizadas"""
+    output_path = Path(output_dir) / f"processed_{target_video.name}"
+    
+    cmd = [
+        "python", "run.py",
+        "-s", str(source_image),
+        "-t", str(target_video),
+        "-o", str(output_path),
+        "--memory-optimization",
+        "--batch-size", str(settings["batch_size"]),
+        "--max-memory", str(settings["max_memory"]),
+        "--execution-threads", str(settings["execution_threads"]),
+        "--temp-frame-format", settings["temp_frame_format"],
+        "--temp-frame-quality", str(settings["temp_frame_quality"]),
+        "--keep-fps"
+    ]
+    
+    print(f"\n🎬 Procesando: {target_video.name}")
+    print(f"📸 Fuente: {source_image.name}")
+    print(f"💾 Salida: {output_path}")
+    print(f"⚙️  Configuración: batch={settings['batch_size']}, mem={settings['max_memory']}GB, threads={settings['execution_threads']}")
+    
+    try:
+        start_time = time.time()
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        end_time = time.time()
         
-        return successful > 0
+        duration = end_time - start_time
+        print(f"✅ Completado en {duration:.1f} segundos")
+        
+        return True, duration
+        
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error procesando {target_video.name}: {e}")
+        if e.stderr:
+            print(f"Detalles del error: {e.stderr}")
+        return False, 0
 
 def main():
-    processor = BatchProcessor()
-    success = processor.run_batch_processing()
-    sys.exit(0 if success else 1)
+    """Función principal del procesador por lotes"""
+    parser = argparse.ArgumentParser(description="ROOP Batch Processor con optimización de memoria")
+    parser.add_argument("--source", "-s", help="Imagen fuente (opcional, se detecta automáticamente)")
+    parser.add_argument("--output-dir", "-o", default="output", help="Directorio de salida")
+    parser.add_argument("--force", "-f", action="store_true", help="Forzar reprocesamiento")
+    parser.add_argument("--dry-run", action="store_true", help="Solo mostrar qué se procesaría")
+    
+    args = parser.parse_args()
+    
+    print_banner()
+    
+    # Detectar configuración del sistema
+    memory_profile = get_system_info()
+    settings = get_optimal_settings(memory_profile)
+    
+    print(f"\n💻 Perfil de sistema detectado: {memory_profile}")
+    print(f"⚙️  Configuración automática:")
+    print(f"   • Batch size: {settings['batch_size']}")
+    print(f"   • Memoria máxima: {settings['max_memory']}GB")
+    print(f"   • Threads: {settings['execution_threads']}")
+    print(f"   • Formato temporal: {settings['temp_frame_format']}")
+    
+    # Crear directorio de salida
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(exist_ok=True)
+    print(f"\n📁 Directorio de salida: {output_dir.absolute()}")
+    
+    # Encontrar archivos
+    source_images = find_image_files()
+    video_files = find_video_files()
+    
+    if not source_images:
+        print("❌ No se encontraron archivos de imagen fuente")
+        print("   Coloca una imagen .jpg, .png, etc. en el directorio actual")
+        return
+    
+    if not video_files:
+        print("❌ No se encontraron archivos de video")
+        print("   Coloca un video .mp4, .avi, etc. en el directorio actual")
+        return
+    
+    # Seleccionar imagen fuente
+    if args.source:
+        source_image = Path(args.source)
+        if not source_image.exists():
+            print(f"❌ La imagen fuente especificada no existe: {args.source}")
+            return
+    else:
+        if len(source_images) == 1:
+            source_image = source_images[0]
+        else:
+            print("\n📸 Imágenes fuente encontradas:")
+            for i, img in enumerate(source_images):
+                print(f"   {i+1}. {img.name}")
+            
+            try:
+                choice = int(input("\nSelecciona una imagen (número): ")) - 1
+                if 0 <= choice < len(source_images):
+                    source_image = source_images[choice]
+                else:
+                    print("❌ Selección inválida")
+                    return
+            except (ValueError, KeyboardInterrupt):
+                print("\n❌ Selección inválida")
+                return
+    
+    print(f"\n🎯 Imagen fuente seleccionada: {source_image.name}")
+    
+    # Filtrar videos que ya fueron procesados
+    if not args.force:
+        unprocessed_videos = []
+        for video in video_files:
+            output_path = output_dir / f"processed_{video.name}"
+            if not output_path.exists():
+                unprocessed_videos.append(video)
+        
+        if not unprocessed_videos:
+            print("✅ Todos los videos ya han sido procesados")
+            print("   Usa --force para reprocesar")
+            return
+        
+        video_files = unprocessed_videos
+    
+    print(f"\n🎬 Videos a procesar: {len(video_files)}")
+    for video in video_files:
+        print(f"   • {video.name}")
+    
+    if args.dry_run:
+        print("\n🔍 Modo dry-run - No se procesará nada")
+        return
+    
+    # Confirmar procesamiento
+    print(f"\n⚠️  ¿Procesar {len(video_files)} videos? (s/N): ", end="")
+    try:
+        confirm = input().lower().strip()
+        if confirm not in ['s', 'si', 'sí', 'y', 'yes']:
+            print("❌ Procesamiento cancelado")
+            return
+    except KeyboardInterrupt:
+        print("\n❌ Procesamiento cancelado")
+        return
+    
+    # Procesar videos
+    print(f"\n🚀 Iniciando procesamiento por lotes...")
+    successful = 0
+    total_duration = 0
+    
+    for i, video in enumerate(video_files, 1):
+        print(f"\n📊 Progreso: {i}/{len(video_files)} ({(i/len(video_files)*100):.1f}%)")
+        
+        success, duration = process_single_video(source_image, video, output_dir, settings)
+        
+        if success:
+            successful += 1
+            total_duration += duration
+        
+        # Pausa entre videos para permitir limpieza de memoria
+        if i < len(video_files):
+            print("⏳ Pausa de 5 segundos para limpieza de memoria...")
+            time.sleep(5)
+    
+    # Resumen final
+    print("\n" + "="*60)
+    print("🎉 PROCESAMIENTO COMPLETADO")
+    print("="*60)
+    print(f"✅ Videos procesados exitosamente: {successful}/{len(video_files)}")
+    print(f"⏱️  Tiempo total: {total_duration:.1f} segundos")
+    print(f"📁 Archivos de salida en: {output_dir.absolute()}")
+    
+    if successful < len(video_files):
+        print(f"⚠️  {len(video_files) - successful} videos fallaron")
+        print("   Revisa los logs de error arriba")
+    
+    print("\n💡 Consejos:")
+    print("   • Si tuviste errores de memoria, reduce --batch-size")
+    print("   • Para mejor calidad, usa --temp-frame-format png")
+    print("   • Cierra otras aplicaciones durante el procesamiento")
 
 if __name__ == "__main__":
-    main() 
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n❌ Procesamiento interrumpido por el usuario")
+    except Exception as e:
+        print(f"\n❌ Error inesperado: {e}")
+        print("Por favor, reporta este error con los detalles completos") 

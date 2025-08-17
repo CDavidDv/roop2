@@ -7,6 +7,10 @@ if any(arg.startswith('--execution-provider') for arg in sys.argv):
     os.environ['OMP_NUM_THREADS'] = '1'
 # reduce tensorflow log level
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+# Optimizaciones de memoria para numpy y torch
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
 import warnings
 from typing import List
 import platform
@@ -45,6 +49,8 @@ def parse_args() -> None:
     program.add_argument('--output-video-encoder', help='encoder used for the output video', dest='output_video_encoder', default='libx264', choices=['libx264', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'hevc_nvenc'])
     program.add_argument('--output-video-quality', help='quality used for the output video', dest='output_video_quality', type=int, default=35, choices=range(101), metavar='[0-100]')
     program.add_argument('--max-memory', help='maximum amount of RAM in GB', dest='max_memory', type=int)
+    program.add_argument('--memory-optimization', help='enable memory optimization mode', dest='memory_optimization', action='store_true')
+    program.add_argument('--batch-size', help='batch size for processing (lower = less memory)', dest='batch_size', type=int, default=5)
     # Set default to cuda if available, otherwise cpu
     default_provider = ['cuda'] if 'CUDAExecutionProvider' in onnxruntime.get_available_providers() else ['cpu']
     program.add_argument('--execution-provider', help='available execution provider (choices: cpu, ...)', dest='execution_provider', default=default_provider, choices=suggest_execution_providers(), nargs='+')
@@ -70,6 +76,8 @@ def parse_args() -> None:
     roop.globals.output_video_encoder = args.output_video_encoder
     roop.globals.output_video_quality = args.output_video_quality
     roop.globals.max_memory = args.max_memory
+    roop.globals.memory_optimization = args.memory_optimization
+    roop.globals.batch_size = args.batch_size
     roop.globals.execution_providers = decode_execution_providers(args.execution_provider)
     roop.globals.execution_threads = args.execution_threads
 
@@ -104,6 +112,25 @@ def limit_resources() -> None:
         tensorflow.config.experimental.set_virtual_device_configuration(gpu, [
             tensorflow.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)
         ])
+    
+    # Optimizaciones de memoria avanzadas
+    if roop.globals.memory_optimization:
+        # Configurar numpy para usar menos memoria
+        import numpy as np
+        np.set_printoptions(precision=4, suppress=True)
+        
+        # Configurar torch para optimización de memoria
+        if 'CUDAExecutionProvider' in roop.globals.execution_providers:
+            try:
+                import torch
+                torch.backends.cudnn.benchmark = False
+                torch.backends.cudnn.deterministic = True
+                # Usar memoria mixta para ahorrar VRAM
+                torch.backends.cuda.matmul.allow_tf32 = False
+                torch.backends.cudnn.allow_tf32 = False
+            except ImportError:
+                pass
+    
     # limit memory usage
     if roop.globals.max_memory:
         memory = roop.globals.max_memory * 1024 ** 3
