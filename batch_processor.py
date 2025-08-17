@@ -147,6 +147,7 @@ def main():
     parser.add_argument("--source-dir", default="source", help="Directorio de imágenes fuente (default: source)")
     parser.add_argument("--force", "-f", action="store_true", help="Forzar reprocesamiento")
     parser.add_argument("--dry-run", action="store_true", help="Solo mostrar qué se procesaría")
+    parser.add_argument("--auto", "-a", action="store_true", help="Procesar automáticamente sin confirmación")
     
     args = parser.parse_args()
     
@@ -234,16 +235,19 @@ def main():
         print("\n🔍 Modo dry-run - No se procesará nada")
         return
     
-    # Confirmar procesamiento
-    print(f"\n⚠️  ¿Procesar {len(video_files)} videos? (s/N): ", end="")
-    try:
-        confirm = input().lower().strip()
-        if confirm not in ['s', 'si', 'sí', 'y', 'yes']:
-            print("❌ Procesamiento cancelado")
+    # Confirmar procesamiento solo si no es modo automático
+    if not args.auto:
+        print(f"\n⚠️  ¿Procesar {len(video_files)} videos? (s/N): ", end="")
+        try:
+            confirm = input().lower().strip()
+            if confirm not in ['s', 'si', 'sí', 'y', 'yes']:
+                print("❌ Procesamiento cancelado")
+                return
+        except KeyboardInterrupt:
+            print("\n❌ Procesamiento cancelado")
             return
-    except KeyboardInterrupt:
-        print("\n❌ Procesamiento cancelado")
-        return
+    else:
+        print(f"\n🚀 Procesando automáticamente {len(video_files)} videos...")
     
     # Procesar videos
     print(f"\n🚀 Iniciando procesamiento por lotes...")

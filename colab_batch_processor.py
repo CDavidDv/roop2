@@ -116,41 +116,21 @@ def main_colab():
         print("   Sube videos a la carpeta 'videos_input'")
         return
     
-    # Seleccionar imagen fuente
+    # Seleccionar imagen fuente automáticamente
     if len(image_files) == 1:
         source_image = image_files[0]
         print(f"\n📸 Imagen fuente automática: {source_image.name}")
     else:
-        print(f"\n📸 Imágenes encontradas en 'source/':")
-        for i, img in enumerate(image_files):
-            print(f"   {i+1}. {img.name}")
-        
-        try:
-            choice = int(input("\nSelecciona imagen (número): ")) - 1
-            if 0 <= choice < len(image_files):
-                source_image = image_files[choice]
-            else:
-                print("❌ Selección inválida")
-                return
-        except:
-            print("❌ Selección inválida")
-            return
+        print(f"\n📸 Múltiples imágenes encontradas en 'source/', usando la primera: {image_files[0].name}")
+        source_image = image_files[0]
     
     # Mostrar videos a procesar
     print(f"\n🎬 Videos encontrados en 'videos_input/' ({len(video_files)}):")
     for video in video_files:
         print(f"   • {video.name}")
     
-    # Confirmar
-    print(f"\n⚠️  ¿Procesar {len(video_files)} videos? (s/N): ", end="")
-    try:
-        confirm = input().lower().strip()
-        if confirm not in ['s', 'si', 'sí', 'y', 'yes']:
-            print("❌ Cancelado")
-            return
-    except:
-        print("❌ Cancelado")
-        return
+    # Procesar automáticamente sin confirmación
+    print(f"\n🚀 Procesando automáticamente {len(video_files)} videos...")
     
     # Procesar videos
     print(f"\n🚀 Iniciando procesamiento...")
