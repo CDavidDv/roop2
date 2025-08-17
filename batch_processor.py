@@ -17,8 +17,9 @@ class BatchProcessor:
         self.default_args = [
             "--execution-provider", "cuda",
             "--max-memory", "12",
-            "--execution-threads", "30",
+            "--execution-threads", "25",
             "--temp-frame-quality", "100",
+            "--many-faces",
             "--keep-fps"
         ]
     
