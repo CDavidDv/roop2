@@ -104,12 +104,10 @@ def process_single_video(source_image, target_video, output_dir, settings):
     output_path = Path(output_dir) / f"processed_{target_video.name}"
     
     cmd = [
-        "python", "run.py",
+        "python", "run_headless.py",
         "-s", str(source_image),
         "-t", str(target_video),
         "-o", str(output_path),
-        "--memory-optimization",
-        "--batch-size", str(settings["batch_size"]),
         "--max-memory", str(settings["max_memory"]),
         "--execution-threads", str(settings["execution_threads"]),
         "--temp-frame-format", settings["temp_frame_format"],

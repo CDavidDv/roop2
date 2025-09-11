@@ -42,7 +42,8 @@ def install_requirements():
         insightface>=0.7.3 \
         gfpgan>=1.3.8 \
         "protobuf>=4.21.0,<5.0.0" \
-        opennsfw2>=0.10.2
+        opennsfw2>=0.10.2 \
+        customtkinter>=5.2.0
     """
     
     try:
