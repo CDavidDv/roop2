@@ -27,6 +27,7 @@ import tensorflow
 # Importar roop al final para evitar imports circulares
 import roop.globals
 import roop.metadata
+from roop.utilities import normalize_output_path
 
 # Suprimir warnings
 warnings.filterwarnings('ignore', category=FutureWarning, module='insightface')
