@@ -13,13 +13,13 @@ def fix_environment():
     """Arregla el entorno de Colab"""
     print("🔧 Preparando entorno para Colab...")
     
-    # Fix NumPy compatibility
+    # Fix NumPy compatibility - usar la versión que funciona en tu entorno
     try:
-        subprocess.run([sys.executable, "-m", "pip", "install", "numpy<2.0"], 
+        subprocess.run([sys.executable, "-m", "pip", "install", "numpy==1.26.4"], 
                       check=True, capture_output=True)
-        print("✅ NumPy compatible instalado")
+        print("✅ NumPy 1.26.4 instalado")
     except:
-        print("⚠️ Warning: No se pudo downgrade NumPy")
+        print("⚠️ Warning: No se pudo instalar NumPy 1.26.4")
     
     # Install essentials
     packages = ["onnxruntime-gpu", "insightface", "opennsfw2", "gfpgan"]
