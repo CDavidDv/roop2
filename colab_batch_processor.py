@@ -8,6 +8,43 @@ import os
 import subprocess
 from pathlib import Path
 import time
+import sys
+
+def check_dependencies():
+    """Verifica si las dependencias están instaladas"""
+    print("🔍 Verificando dependencias...")
+    
+    missing_deps = []
+    
+    try:
+        import onnxruntime
+        providers = onnxruntime.get_available_providers()
+        if 'CUDAExecutionProvider' in providers:
+            print("✅ ONNX Runtime con CUDA disponible")
+        else:
+            print("⚠️  ONNX Runtime sin CUDA - se usará CPU")
+    except ImportError:
+        missing_deps.append("onnxruntime-gpu")
+    
+    try:
+        import cv2
+        print("✅ OpenCV disponible")
+    except ImportError:
+        missing_deps.append("opencv-python")
+    
+    try:
+        import insightface
+        print("✅ InsightFace disponible")
+    except ImportError:
+        missing_deps.append("insightface")
+    
+    if missing_deps:
+        print(f"❌ Dependencias faltantes: {', '.join(missing_deps)}")
+        print("💡 Ejecuta primero: python colab_install.py")
+        return False
+    
+    print("✅ Todas las dependencias están instaladas")
+    return True
 
 def print_colab_banner():
     """Banner específico para Colab"""
@@ -88,6 +125,14 @@ def process_video_colab(source_image, target_video, settings):
 def main_colab():
     """Función principal para Colab"""
     print_colab_banner()
+    
+    # Verificar dependencias primero
+    if not check_dependencies():
+        print("\n❌ No se puede continuar sin las dependencias necesarias")
+        print("💡 Solución:")
+        print("   1. Ejecuta: python colab_install.py")
+        print("   2. Luego ejecuta este script nuevamente")
+        return
     
     # Obtener configuraciones para Colab
     settings = get_colab_settings()
