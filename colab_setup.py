@@ -40,6 +40,8 @@ def install_requirements():
         onnx==1.16.1 \
         "onnxruntime-gpu>=1.17.0" \
         insightface>=0.7.3 \
+        basicsr>=1.4.2 \
+        facexlib>=0.3.0 \
         gfpgan>=1.3.8 \
         "protobuf>=4.21.0,<5.0.0" \
         opennsfw2>=0.10.2 \

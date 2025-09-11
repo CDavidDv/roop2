@@ -24,11 +24,9 @@ import onnxruntime
 import tensorflow
 
 # Importar módulos de ROOP (sin UI)
+# Importar roop al final para evitar imports circulares
 import roop.globals
 import roop.metadata
-from roop.predictor import predict_image, predict_video
-from roop.processors.frame.core import get_frame_processors_modules
-from roop.utilities import has_image_extension, is_image, is_video, detect_fps, create_video, extract_frames, get_temp_frame_paths, restore_audio, create_temp, move_temp, clean_temp, normalize_output_path
 
 # Suprimir warnings
 warnings.filterwarnings('ignore', category=FutureWarning, module='insightface')
@@ -129,6 +127,11 @@ def update_status(message: str, scope: str = 'ROOP.CORE') -> None:
 
 
 def start() -> None:
+    # Importar aquí para evitar problemas circulares
+    from roop.processors.frame.core import get_frame_processors_modules
+    from roop.predictor import predict_image, predict_video
+    from roop.utilities import has_image_extension, is_image, is_video, detect_fps, create_video, extract_frames, get_temp_frame_paths, restore_audio, create_temp, move_temp, clean_temp, normalize_output_path
+    
     for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
         if not frame_processor.pre_start():
             return
@@ -199,6 +202,10 @@ def run() -> None:
     parse_args()
     if not pre_check():
         return
+    
+    # Importar aquí para evitar problemas circulares
+    from roop.processors.frame.core import get_frame_processors_modules
+    
     for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
         if not frame_processor.pre_check():
             return
