@@ -13,8 +13,9 @@ torch>=2.0.0
 torchvision>=0.15.0
 tensorflow>=2.13.0
 
-# ONNX Runtime (actualizado para Python 3.12)
-onnx>=1.14.0
+# ONNX Runtime (versiones específicas compatibles)
+ml_dtypes==0.2.0
+onnx==1.16.1
 onnxruntime-gpu>=1.17.0
 
 # Face processing libraries

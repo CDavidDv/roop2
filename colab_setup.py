@@ -36,7 +36,8 @@ def install_requirements():
         torch>=2.0.0 \
         torchvision>=0.15.0 \
         tensorflow>=2.13.0 \
-        onnx>=1.14.0 \
+        ml_dtypes==0.2.0 \
+        onnx==1.16.1 \
         "onnxruntime-gpu>=1.17.0" \
         insightface>=0.7.3 \
         gfpgan>=1.3.8 \
