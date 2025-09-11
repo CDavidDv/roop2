@@ -89,7 +89,7 @@ def process_video_colab(source_image, target_video, settings):
     output_name = f"processed_{target_video.name}"
     
     cmd = [
-        "python", "run.py",
+        "python", "run_headless.py",
         "-s", str(source_image),
         "-t", str(target_video),
         "-o", output_name,
