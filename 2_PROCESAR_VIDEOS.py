@@ -94,7 +94,7 @@ def crear_comando_maxima_calidad(source_path, target_path, output_path):
     
     # Configuración de MÁXIMA CALIDAD
     cmd = [
-        sys.executable, "run.py",
+        sys.executable, "run_simple.py",
         "-s", str(source_path),
         "-t", str(target_path),
         "-o", str(output_path),
