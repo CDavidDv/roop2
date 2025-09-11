@@ -1,0 +1,20 @@
+# Requirements específicos para Google Colab
+# No usar versiones fijas para evitar conflictos con paquetes preinstalados
+
+# ONNX Runtime GPU (esencial)
+onnxruntime-gpu
+
+# Computer Vision
+opencv-python
+insightface
+
+# Utilidades
+psutil
+tqdm
+
+# AI/ML adicionales que no están en Colab por defecto
+opennsfw2
+gfpgan
+
+# Para análisis automático de videos
+moviepy

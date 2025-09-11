@@ -7,12 +7,20 @@
 ModuleNotFoundError: No module named 'onnxruntime'
 ```
 
+**⚠️ NO USES** `!pip install -r requirements.txt` en Colab - causa conflictos de versiones.
+
 ### ✅ Solución Rápida
 
 **1. Instalar dependencias correctamente:**
 ```python
-# En tu celda de Colab, ejecuta esto PRIMERO:
+# MÉTODO RECOMENDADO - En tu celda de Colab:
 !python colab_install.py
+```
+
+**2. Alternativa con requirements específicos:**
+```python
+# Si prefieres usar requirements específicos para Colab:
+!pip install -r requirements-colab.txt
 ```
 
 **2. Verificar instalación:**

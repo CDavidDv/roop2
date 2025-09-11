@@ -28,33 +28,24 @@ def main():
     print("🎯 Optimizado para Tesla T4")
     print("🚀" * 50)
     
-    # Lista de comandos a ejecutar
+    # Lista de comandos a ejecutar (sin versiones fijas para evitar conflictos)
     commands = [
         # Actualizar pip
         ("pip install --upgrade pip", "Actualizando pip"),
         
-        # Instalar PyTorch con CUDA
-        ("pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118", "Instalando PyTorch con CUDA 11.8"),
+        # Instalar onnxruntime-gpu específicamente (lo más importante)
+        ("pip install onnxruntime-gpu", "Instalando ONNX Runtime GPU"),
         
-        # Instalar onnxruntime-gpu primero
-        ("pip install onnxruntime-gpu==1.15.1", "Instalando ONNX Runtime GPU"),
-        
-        # Instalar dependencias básicas
-        ("pip install numpy==1.24.3", "Instalando NumPy"),
-        ("pip install opencv-python==4.8.0.74", "Instalando OpenCV"),
-        ("pip install onnx==1.14.0", "Instalando ONNX"),
-        ("pip install insightface==0.7.3", "Instalando InsightFace"),
-        ("pip install psutil==5.9.5", "Instalando psutil"),
-        ("pip install pillow==10.0.0", "Instalando Pillow"),
-        ("pip install tensorflow==2.13.0", "Instalando TensorFlow"),
-        ("pip install opennsfw2==0.10.2", "Instalando OpenNSFW2"),
-        ("pip install protobuf==4.23.4", "Instalando Protobuf"),
-        ("pip install tqdm==4.65.0", "Instalando tqdm"),
-        ("pip install gfpgan==1.3.8", "Instalando GFPGAN"),
-        
-        # Dependencias adicionales para análisis automático
+        # Instalar dependencias que no están en Colab o versiones muy viejas
+        ("pip install opencv-python", "Instalando OpenCV"),
+        ("pip install insightface", "Instalando InsightFace"),
+        ("pip install opennsfw2", "Instalando OpenNSFW2"),
+        ("pip install gfpgan", "Instalando GFPGAN"),
         ("pip install moviepy", "Instalando MoviePy para análisis de video"),
-        ("pip install matplotlib", "Instalando Matplotlib para gráficos"),
+        
+        # Solo instalar si realmente no están disponibles
+        ("pip install --upgrade psutil", "Actualizando psutil"),
+        ("pip install --upgrade tqdm", "Actualizando tqdm"),
     ]
     
     # Ejecutar comandos
