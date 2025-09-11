@@ -235,19 +235,7 @@ def main():
         print("\n🔍 Modo dry-run - No se procesará nada")
         return
     
-    # Confirmar procesamiento solo si no es modo automático
-    if not args.auto:
-        print(f"\n⚠️  ¿Procesar {len(video_files)} videos? (s/N): ", end="")
-        try:
-            confirm = input().lower().strip()
-            if confirm not in ['s', 'si', 'sí', 'y', 'yes']:
-                print("❌ Procesamiento cancelado")
-                return
-        except KeyboardInterrupt:
-            print("\n❌ Procesamiento cancelado")
-            return
-    else:
-        print(f"\n🚀 Procesando automáticamente {len(video_files)} videos...")
+    print(f"\n🚀 Procesando automáticamente {len(video_files)} videos...")
     
     # Procesar videos
     print(f"\n🚀 Iniciando procesamiento por lotes...")
